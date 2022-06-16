@@ -6,7 +6,10 @@ import 'package:meshtastic_proto/util.dart';
 
 class StreamInterface extends MeshInterface {
   void connect() async {}
-  void close() {}
+  void close() {
+    super.close();
+  }
+
   void writeBytes(Uint8List b) async {}
 
   @override
@@ -18,6 +21,7 @@ class StreamInterface extends MeshInterface {
   }
 
   void reader(Uint8List data) {
+    lastPacketReceived = DateTime.now();
     splitPackets(data).forEach((element) {
       FromRadio fromRadio = FromRadio.fromBuffer(element.skip(4).toList());
       super.handleFromRadio(fromRadio);

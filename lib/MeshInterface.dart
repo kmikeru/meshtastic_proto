@@ -6,8 +6,11 @@ import 'Meshtastic-protobufs/mesh.pb.dart' as pb;
 import 'package:meshtastic_proto/StreamInterface.dart';
 import 'package:meshtastic_proto/util.dart';
 
+typedef void TextMessageCallback(pb.FromRadio fr, String text);
+
 class MeshInterface {
   bool enableDebug = false;
+  DateTime lastPacketReceived = DateTime.now(); // useful for watchdog timer
   late StreamInterface iface;
   pb.MyNodeInfo? myNodeInfo;
   Map<int, pb.NodeInfo> nodemap = Map();
@@ -19,11 +22,16 @@ class MeshInterface {
   StreamController<pb.FromRadio> _streamController = StreamController.broadcast(sync: false);
   String lastMessage = '';
 
+  TextMessageCallback onTextMessageReceive = (a, b) => {};
+
   MeshInterface() {
     fromRadioStream = _streamController.stream;
   }
 
-  void close() {}
+  void close() {
+    configComplete = false;
+    config = Completer();
+  }
 
   void sendText(String text) {
     sendData(utf8.encode(text), PortNum.TEXT_MESSAGE_APP);
@@ -106,13 +114,10 @@ class MeshInterface {
           case PortNum.STORE_FORWARD_APP:
             break;
           case PortNum.TEXT_MESSAGE_APP:
-            lastMessage = formatDate(DateTime.now()) +
-                ' ' +
-                'from:' +
-                (getLongNameByNum(fromRadio.packet.from) ?? '') +
-                '>' +
-                utf8.decode(fromRadio.packet.decoded.payload);
-            print('lastMessage:$lastMessage');
+            String messageText = utf8.decode(fromRadio.packet.decoded.payload);
+            lastMessage = formatDate(DateTime.now()) + ' ' + 'from:' + (getLongNameByNum(fromRadio.packet.from) ?? '') + '>' + messageText;
+            debug('lastMessage:$lastMessage');
+            onTextMessageReceive(fromRadio, messageText);
             break;
           case PortNum.UNKNOWN_APP:
             break;
@@ -172,10 +177,12 @@ class MeshInterface {
   }
 
   void debug(Object o) {
-    if (o is String) {
-      print('DEBUG: $o');
-    } else {
-      print('DEBUG: ' + o.toString());
+    if (enableDebug) {
+      if (o is String) {
+        print('DEBUG: $o');
+      } else {
+        print('DEBUG: ' + o.toString());
+      }
     }
   }
 }

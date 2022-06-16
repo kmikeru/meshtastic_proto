@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:meshtastic_proto/StreamInterface.dart';
+import 'package:meshtastic_proto/util.dart';
 
 class TCPInterface extends StreamInterface {
   final String hostname;
@@ -14,7 +15,7 @@ class TCPInterface extends StreamInterface {
     print('Connected to: ${socket.remoteAddress.address}:${socket.remotePort}');
     socket.listen(
       (d) {
-        debug('TCP: ' + d.map((e) => e.toRadixString(16).padLeft(2, '0')).join(' '));
+        debug(formatDate(DateTime.now()) + ' TCP: ' + d.map((e) => e.toRadixString(16).padLeft(2, '0')).join(' '));
         super.reader(d);
       },
       // handle errors
@@ -34,6 +35,7 @@ class TCPInterface extends StreamInterface {
   @override
   void close() {
     socket.destroy();
+    super.close();
   }
 
   @override
